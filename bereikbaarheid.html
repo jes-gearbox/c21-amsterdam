@@ -219,6 +219,7 @@
 .pop .ok{color:#2f6b3f;font-weight:700}
 .pop .no{color:#d41159;font-weight:700}
 .pop .exempt-note{margin-top:8px;padding:7px 8px;background:#f2f9f3;border:1px solid #bfe0c6;border-radius:7px;font-size:12px;color:#2f6b3f}
+.leaflet-control-layers-expanded{max-height:calc(100vh - 40px);overflow-y:auto}
 </style>
 </head>
 <body>
@@ -291,11 +292,65 @@ const baseAerial=L.tileLayer.wms("https://service.pdok.nl/hwh/luchtfotorgb/wms/v
 const nwbWegvakken=L.tileLayer.wms("https://service.pdok.nl/rws/nwbwegen/wms/v1_0",{layers:"wegvakken",format:"image/png",transparent:true,version:"1.3.0",maxZoom:20});
 const accessLayer=L.layerGroup().addTo(map);
 const zoneLayer=L.layerGroup().addTo(map);
+
+/* --- Bordenlagen: aan/uit per soort, lui geladen bij aanzetten --- */
+const SIGN_BASE="https://data.ndw.nu/api/rest/static-road-data/traffic-signs/v4/current-state?countyCode=GM0363&crs=http%3A%2F%2Fwww.opengis.net%2Fdef%2Fcrs%2FOGC%2F1.3%2FCRS84&rvvCode=";
+const SIGN_CATS={
+  "Hoogte (C19)":["C19"],
+  "Breedte (C18)":["C18"],
+  "Lengte (C17)":["C17"],
+  "Aslast (C20)":["C20"],
+  "Gewicht (C21)":["C21"],
+  "Inrij-/vrachtverboden":["C1","C6","C7","C7a","C7b","C8","C9","C10","C11","C12","C22a","C22c"]
+};
+const signGroups={}, signLoaded={};
+Object.keys(SIGN_CATS).forEach(label=>{ signGroups[label]=L.markerClusterGroup({maxClusterRadius:45,showCoverageOnHover:false,chunkedLoading:true}); });
+
 L.control.layers(
   {"Licht (CARTO)":baseLight,"OpenStreetMap":baseOSM,"Luchtfoto (PDOK)":baseAerial},
-  {"NWB wegvakken":nwbWegvakken,"7,5t-zoneborden":zoneLayer,"Bereikbaarheid":accessLayer},
+  Object.assign({"NWB wegvakken":nwbWegvakken,"7,5t-zoneborden":zoneLayer,"Bereikbaarheid":accessLayer}, signGroups),
   {position:"topright",collapsed:false}
 ).addTo(map);
+
+function bordGlyph(rec){
+  const rvv=(rec.rvvCode||"?").replace(/\(zone\)/i,"");
+  const dimensional=/^C(17|18|19|20|21)/i.test(rvv);
+  const val=(dimensional && rec.blackCode!=null && rec.blackCode!=="") ? String(rec.blackCode).replace(".",",") : rvv;
+  const size=val.length>3?8.5:11;
+  const html=`<svg width="30" height="30" viewBox="0 0 30 30" style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))">
+    <circle cx="15" cy="15" r="11" fill="#fff" stroke="#CB1F27" stroke-width="3.5"/>
+    <text x="15" y="19" text-anchor="middle" font-family="Barlow Semi Condensed,sans-serif" font-weight="700" font-size="${size}" fill="#1C1E21">${val}</text></svg>`;
+  return L.divIcon({html,className:"",iconSize:[30,30],iconAnchor:[15,15]});
+}
+function bordPopup(rec){
+  const rvv=rec.rvvCode||"?";
+  const rows=[
+    (rec.blackCode!=null&&rec.blackCode!=="")?["Waarde",String(rec.blackCode)]:null,
+    (rec.zoneCode&&rec.zoneCode!=="")?["Zone",rec.zoneCode]:null,
+    rec.roadName?["Locatie",rec.roadName]:null
+  ].filter(Boolean);
+  return '<div class="pop"><h3>'+rvv+'</h3><table>'+rows.map(r=>'<tr><td class="k">'+r[0]+'</td><td class="v">'+r[1]+'</td></tr>').join('')+'</table>'
+    +(rec.imageUrl?'<img src="'+rec.imageUrl+'" alt="bord" loading="lazy" onerror="this.style.display=\'none\'">':'')
+    +(rec.trafficOrderUrl?'<a class="to" href="'+rec.trafficOrderUrl+'" target="_blank" rel="noopener">Verkeersbesluit ↗</a>':'')
+    +'</div>';
+}
+async function loadSignCategory(label){
+  const codes=SIGN_CATS[label], group=signGroups[label];
+  try{
+    const lists=await Promise.all(codes.map(code=>
+      fetch(SIGN_BASE+encodeURIComponent(code),{headers:{"Accept":"application/geo+json"}})
+        .then(r=>r.ok?r.json():null).catch(()=>null)));
+    const markers=[];
+    lists.forEach(data=>{ if(!data) return; fromGeoJSON(data).forEach(rec=>{
+      const lat=rec._lat!=null?+rec._lat:(rec.latitude!=null?+rec.latitude:null);
+      const lon=rec._lon!=null?+rec._lon:(rec.longitude!=null?+rec.longitude:null);
+      if(lat==null||lon==null||isNaN(lat)||isNaN(lon)) return;
+      markers.push(L.marker([lat,lon],{icon:bordGlyph(rec)}).bindPopup(bordPopup(rec)));
+    }); });
+    group.addLayers(markers);
+  }catch(err){}
+}
+map.on("overlayadd",e=>{ if(SIGN_CATS[e.name] && !signLoaded[e.name]){ signLoaded[e.name]=true; loadSignCategory(e.name); } });
 
 function parseWeight(blackCode){
   if(blackCode==null) return null;
