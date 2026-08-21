@@ -262,7 +262,7 @@
     </div>
 
     <div class="block" id="tipBlock" style="display:none">
-      <div class="tip"><b>Tip:</b> klik ergens op de kaart om per punt te checken of je er komt — en zo nee, waarom. Als het alleen de 7,5t-zone is, zie je dat er expliciet bij.</div>
+      <div class="tip"><b>Tip:</b> klik op een weg (of vlak erbij) om te checken of je er komt — en zo nee, waarom. Als het alleen de 7,5t-zone is, zie je dat er expliciet bij.</div>
     </div>
 
     <details class="about">
@@ -431,8 +431,8 @@ function renderArea(data){
   const feats=(data.features||[]).filter(f=>f.properties&&f.properties.type==="roadSectionSegment");
   let acc=0,inacc=0;
   const gj=L.geoJSON({type:"FeatureCollection",features:feats},{
-    style:f=>{const ok=f.properties.accessible; if(ok)acc++;else inacc++; return {color:ok?"#8fc4ff":"#d41159",weight:ok?2:3,opacity:ok?0.6:0.95};},
-    onEachFeature:(f,l)=>{ if(!f.properties.accessible) l.bindPopup('<div class="pop"><span class="no">Niet bereikbaar</span><div class="rz">Wegvak '+f.properties.roadSectionId+'. Klik op de kaart voor de reden.</div></div>'); }
+    interactive:false,
+    style:f=>{const ok=f.properties.accessible; if(ok)acc++;else inacc++; return {color:ok?"#8fc4ff":"#d41159",weight:ok?2:3,opacity:ok?0.6:0.95};}
   });
   accessLayer.addLayer(gj);
   showBlocks();
@@ -480,7 +480,7 @@ async function checkPoint(latlng){
   busy=false;
 }
 function renderDest(dest){
-  if(!dest) return '<div class="pop"><div class="rz">Geen bestemmingsinfo voor dit punt.</div></div>';
+  if(!dest) return '<div class="pop"><div class="rz">Geen weg vlak bij dit punt gevonden. Klik iets dichter op een straat.</div></div>';
   if(dest.properties.accessible) return '<div class="pop"><span class="ok">✓ Bereikbaar</span><div class="rz">Dit punt is bereikbaar voor dit voertuig.</div></div>';
   const groups=dest.properties.reasons||[]; const signIds=[]; const types=new Set();
   groups.forEach(g=>g.forEach(r=>{ if(r.type)types.add(r.type); (r.becauseOf||[]).forEach(b=>{ if(b.type==="trafficSign") signIds.push({id:String(b.trafficSignId||""),t:b.trafficSignType}); }); }));
