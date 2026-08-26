@@ -345,14 +345,20 @@ function bordGlyph(rec){
 }
 function bordPopup(rec){
   const rvv=rec.rvvCode||"?";
+  let onder="";
+  if(Array.isArray(rec.textSigns)) onder=rec.textSigns.map(t=>t&&(t.text||t.type||t)).filter(Boolean).join("; ");
+  else if(typeof rec.textSigns==="string") onder=rec.textSigns;
   const rows=[
     (rec.blackCode!=null&&rec.blackCode!=="")?["Waarde",String(rec.blackCode)]:null,
     (rec.zoneCode&&rec.zoneCode!=="")?["Zone",rec.zoneCode]:null,
+    onder?["Onderbord",onder]:null,
     rec.roadName?["Locatie",rec.roadName]:null
   ].filter(Boolean);
+  const to=rec.trafficOrderUrl;
+  const toUrl=to ? (/^https?:/i.test(to)?to:("https://zoek.officielebekendmakingen.nl/"+encodeURIComponent(to)+".html")) : "";
   return '<div class="pop"><h3>'+rvv+'</h3><table>'+rows.map(r=>'<tr><td class="k">'+r[0]+'</td><td class="v">'+r[1]+'</td></tr>').join('')+'</table>'
     +(rec.imageUrl?'<img src="'+rec.imageUrl+'" alt="bord" loading="lazy" onerror="this.style.display=\'none\'">':'')
-    +(rec.trafficOrderUrl?'<a class="to" href="'+rec.trafficOrderUrl+'" target="_blank" rel="noopener">Verkeersbesluit ↗</a>':'')
+    +(toUrl?'<a class="to" href="'+toUrl+'" target="_blank" rel="noopener">Verkeersbesluit ↗</a>':'')
     +'</div>';
 }
 async function loadSignCategory(label){
