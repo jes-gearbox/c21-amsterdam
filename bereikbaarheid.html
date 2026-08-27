@@ -219,7 +219,7 @@
 .pop .ok{color:#2f6b3f;font-weight:700}
 .pop .no{color:#d41159;font-weight:700}
 .pop .exempt-note{margin-top:8px;padding:7px 8px;background:#f2f9f3;border:1px solid #bfe0c6;border-radius:7px;font-size:12px;color:#2f6b3f}
-.leaflet-control-layers-expanded{max-height:38vh;overflow-y:auto}
+.leaflet-control-layers-expanded{max-height:calc(100vh - 40px);overflow-y:auto}
 .borden-control{background:#fff;border-radius:8px;box-shadow:0 1px 5px rgba(0,0,0,.28);padding:9px 11px;max-height:44vh;overflow-y:auto;font-family:"Barlow",sans-serif}
 .bc-title{font-family:"Space Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--asphalt-2);margin-bottom:8px}
 .bc-sub{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
@@ -257,6 +257,7 @@
         <label class="full">Emissieklasse<select id="v_emission"><option value="euro_6" selected>Euro 6</option><option value="euro_5">Euro 5</option><option value="euro_4">Euro 4</option><option value="euro_3">Euro 3</option><option value="euro_2">Euro 2</option><option value="euro_1">Euro 1</option><option value="zero">Emissievrij</option></select></label>
       </div>
       <a class="btn ghost calc" id="calcBtn">Herbereken voor dit voertuig</a>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:9px;font-size:12.5px;color:var(--asphalt-2);cursor:pointer"><input type="checkbox" id="excl_emission" style="accent-color:var(--asphalt)"> Milieuzone negeren (test)</label>
       <p class="hint">De kaart opent met de dagelijks voorberekende laag (diesel Euro 6). Pas waarden aan — óók brandstof/emissieklasse (milieuzone) — en klik hierboven om live te herberekenen. Geen kenteken of merk in deze kaart.</p>
     </div>
 
@@ -332,7 +333,6 @@ L.control.layers(
   {position:"topright",collapsed:false}
 ).addTo(map);
 
-/* Borden-schakelaar als eigen paneel rechtsboven */
 const BordenControl=L.Control.extend({
   options:{position:"topright"},
   onAdd:function(){
@@ -586,9 +586,11 @@ async function loadPrecomputed(){
 }
 
 /* experimental: live recompute (blocked by CORS until a proxy is added) */
+function exclusions(){ return (document.getElementById("excl_emission")&&document.getElementById("excl_emission").checked) ? {emissionZoneTypes:["zero_emission_zone","low_emission_zone"]} : undefined; }
+
 async function computeArea(){
   setStatus("","Live herberekenen…");
-  const body={area:{type:"municipality",id:"GM0363"},vehicle:readVehicle(),includeAccessibleRoadSections:true,includeInaccessibleRoadSections:true};
+  const body={area:{type:"municipality",id:"GM0363"},vehicle:readVehicle(),includeAccessibleRoadSections:true,includeInaccessibleRoadSections:true,exclusions:exclusions()};
   try{
     const res=await fetch(ACCESS_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/geo+json"},body:JSON.stringify(body)});
     if(!res.ok) throw new Error("HTTP "+res.status);
@@ -601,7 +603,7 @@ let busy=false;
 async function checkPoint(latlng){
   if(busy) return; busy=true;
   const popup=L.popup().setLatLng(latlng).setContent('<div class="pop"><div class="rz">Checken…</div></div>').openOn(map);
-  const body={area:{type:"municipality",id:"GM0363"},destination:{latitude:latlng.lat,longitude:latlng.lng},vehicle:readVehicle(),includeAccessibleRoadSections:false,includeInaccessibleRoadSections:false};
+  const body={area:{type:"municipality",id:"GM0363"},destination:{latitude:latlng.lat,longitude:latlng.lng},vehicle:readVehicle(),includeAccessibleRoadSections:false,includeInaccessibleRoadSections:false,exclusions:exclusions()};
   try{
     const res=await fetch(ACCESS_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/geo+json"},body:JSON.stringify(body)});
     if(!res.ok) throw new Error("HTTP "+res.status);
@@ -631,6 +633,7 @@ function renderDest(dest){
 
 map.on("click",e=>checkPoint(e.latlng));
 document.getElementById("calcBtn").addEventListener("click",computeArea);
+document.getElementById("excl_emission").addEventListener("change",computeArea);
 document.getElementById("collapseBtn").addEventListener("click",()=>{document.getElementById("panel").classList.toggle("collapsed");setTimeout(()=>map.invalidateSize(),200);});
 
 loadSigns();
