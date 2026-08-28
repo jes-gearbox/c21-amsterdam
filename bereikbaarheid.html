@@ -647,16 +647,18 @@ loadEmissionZones();
 
 async function loadEmissionZones(){
   try{
-    const res=await fetch(EMISSION_URL,{headers:{"Accept":"application/geo+json"}});
+    const res=await fetch(EMISSION_URL);
     if(!res.ok) throw new Error("HTTP "+res.status);
     const data=await res.json();
-    const feats=(data.features||[]).filter(f=>f.properties&&f.properties.county&&f.properties.county.name==="Amsterdam");
+    let feats=(data.features||[]).filter(f=>f.properties&&f.properties.county&&(String(f.properties.county.name||"").toLowerCase().includes("amsterdam")||f.properties.county.gmCode==="GM0363"));
+    if(!feats.length) feats=(data.features||[]).filter(f=>f.geometry);
+    console.log("Emissiezones geladen:",(data.features||[]).length,"totaal,",feats.length,"getoond");
     emissionLayer.clearLayers();
     L.geoJSON({type:"FeatureCollection",features:feats},{
       style:f=>{const c=EMISSION_STYLE[f.properties.zoneType]||"#666"; return {color:c,fillColor:c,weight:2.5,opacity:0.85,fillOpacity:0.07,dashArray:"6 4"};},
       onEachFeature:(f,l)=>l.bindPopup(emissionPopup(f.properties))
     }).addTo(emissionLayer);
-  }catch(e){}
+  }catch(e){ console.error("Emissiezones laden mislukt:",e); }
 }
 function emissionPopup(p){
   const label=p.zoneType==="ZERO_EMISSION_ZONE"?"Nul-emissiezone":(p.zoneType==="ENVIRONMENTAL_ZONE"?"Milieuzone":(p.zoneType||"Zone"));
