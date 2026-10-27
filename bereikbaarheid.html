@@ -376,9 +376,16 @@ function bordPopup(rec){
   ].filter(Boolean);
   const to=rec.trafficOrderUrl;
   const toUrl=to ? (/^https?:/i.test(to)?to:("https://zoek.officielebekendmakingen.nl/"+encodeURIComponent(to)+".html")) : "";
+  const lat=rec._lat!=null?+rec._lat:(rec.latitude!=null?+rec.latitude:null);
+  const lon=rec._lon!=null?+rec._lon:(rec.longitude!=null?+rec.longitude:null);
+  const svUrl=(lat!=null&&lon!=null&&!isNaN(lat)&&!isNaN(lon))?("https://www.google.com/maps/@?api=1&map_action=pano&viewpoint="+lat+","+lon):"";
+  const links=[
+    toUrl?'<a class="to" href="'+toUrl+'" target="_blank" rel="noopener">Verkeersbesluit ↗</a>':"",
+    svUrl?'<a class="to" href="'+svUrl+'" target="_blank" rel="noopener">Bekijk op straat ↗</a>':""
+  ].filter(Boolean).join('<span style="color:#c9c4b6;margin:0 7px">·</span>');
   return '<div class="pop"><h3>'+rvv+'</h3><table>'+rows.map(r=>'<tr><td class="k">'+r[0]+'</td><td class="v">'+r[1]+'</td></tr>').join('')+'</table>'
     +(rec.imageUrl?'<img src="'+rec.imageUrl+'" alt="bord" loading="lazy" onerror="this.style.display=\'none\'">':'')
-    +(toUrl?'<a class="to" href="'+toUrl+'" target="_blank" rel="noopener">Verkeersbesluit ↗</a>':'')
+    +links
     +'</div>';
 }
 async function loadSignCategory(label){
@@ -548,7 +555,8 @@ async function loadSigns(){
       if(s.id) c21ById.set(String(s.id),{zone:s.zoneCode,is75:s.is75,known:known,wlabel:s.wlabel,road:s.road});
       if(s.is75 && known){
         L.marker([s.lat,s.lon],{icon:signGlyph(s)})
-          .bindPopup('<div class="pop"><h3>C21 · '+s.wlabel+' t</h3><span class="ptag" style="background:#7d8288">7,5t-zone · '+(ZONE_LABELS[s.zoneCode]||s.zoneCode)+'</span></div>')
+          .bindPopup('<div class="pop"><h3>C21 · '+s.wlabel+' t</h3><span class="ptag" style="background:#7d8288">7,5t-zone · '+(ZONE_LABELS[s.zoneCode]||s.zoneCode)+'</span>'
+            +'<a class="to" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+s.lat+','+s.lon+'" target="_blank" rel="noopener">Bekijk op straat ↗</a></div>')
           .addTo(zoneLayer);
       }
     });
