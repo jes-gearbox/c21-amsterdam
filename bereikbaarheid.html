@@ -275,7 +275,7 @@
     </div>
 
     <div class="block" id="tipBlock" style="display:none">
-      <div class="tip"><b>Tip:</b> klik op een weg (of vlak erbij) om te checken of je er komt — en zo nee, waarom. Als het alleen de 7,5t-zone is, zie je dat er expliciet bij.</div>
+      <div class="tip"><b>Tip:</b> klik ergens in de buurt van een weg om te checken of je er komt — en zo nee, waarom. De kaart pakt automatisch de dichtstbijzijnde straat. Als het alleen de 7,5t-zone is, zie je dat er expliciet bij.</div>
     </div>
 
     <details class="about">
@@ -564,9 +564,38 @@ function readVehicle(){
 function setStatus(kind,msg){const el=document.getElementById("status");el.className="status"+(kind?(" "+kind):"");el.innerHTML="<span>"+msg+"</span>";}
 function showBlocks(){["legendBlock","tipBlock"].forEach(id=>document.getElementById(id).style.display="");}
 
+let roadSegs=[];
+function snapToRoad(latlng){
+  if(!roadSegs.length) return null;
+  const clickP=map.latLngToLayerPoint(latlng);
+  const dLat=0.0055, dLon=0.0085; // ~600m zoekvenster, grove voorfilter
+  let best=null, bestD=Infinity;
+  for(const f of roadSegs){
+    const g=f.geometry; if(!g) continue;
+    const lines = g.type==="LineString" ? [g.coordinates] : (g.type==="MultiLineString" ? g.coordinates : null);
+    if(!lines) continue;
+    for(const line of lines){
+      let near=false;
+      for(const c of line){ if(Math.abs(c[1]-latlng.lat)<dLat && Math.abs(c[0]-latlng.lng)<dLon){ near=true; break; } }
+      if(!near) continue;
+      for(let i=0;i+1<line.length;i++){
+        const a=map.latLngToLayerPoint([line[i][1],line[i][0]]);
+        const b=map.latLngToLayerPoint([line[i+1][1],line[i+1][0]]);
+        const cp=L.LineUtil.closestPointOnSegment(clickP,a,b);
+        const d=clickP.distanceTo(cp);
+        if(d<bestD){ bestD=d; best=cp; }
+      }
+    }
+  }
+  if(!best) return null;
+  const snapped=map.layerPointToLatLng(best);
+  return {latlng:snapped, meters:latlng.distanceTo(snapped)};
+}
+
 function renderArea(data){
   accessLayer.clearLayers();
   const feats=(data.features||[]).filter(f=>f.properties&&f.properties.type==="roadSectionSegment");
+  roadSegs=feats;
   let acc=0,inacc=0;
   const gj=L.geoJSON({type:"FeatureCollection",features:feats},{
     interactive:false,
@@ -606,8 +635,17 @@ async function computeArea(){
 }
 
 let busy=false;
-async function checkPoint(latlng){
+async function checkPoint(rawLatLng){
   if(busy) return; busy=true;
+  let latlng=rawLatLng;
+  if(roadSegs.length){
+    const snap=snapToRoad(rawLatLng);
+    if(snap && snap.meters<=90){ latlng=snap.latlng; }
+    else {
+      L.popup().setLatLng(rawLatLng).setContent('<div class="pop"><div class="rz">Geen weg in de buurt. Klik iets dichter op een straat.</div></div>').openOn(map);
+      busy=false; return;
+    }
+  }
   const popup=L.popup().setLatLng(latlng).setContent('<div class="pop"><div class="rz">Checken…</div></div>').openOn(map);
   const body={area:{type:"municipality",id:"GM0363"},destination:{latitude:latlng.lat,longitude:latlng.lng},vehicle:readVehicle(),includeAccessibleRoadSections:false,includeInaccessibleRoadSections:false,exclusions:exclusions()};
   try{
