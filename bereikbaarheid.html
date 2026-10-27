@@ -269,8 +269,8 @@
         <div class="leg"><svg width="30" height="14"><line x1="2" y1="7" x2="28" y2="7" stroke="#d41159" stroke-width="4"/></svg><div><b>Niet bereikbaar</b> voor dit voertuig</div></div>
         <div class="leg"><svg width="30" height="14"><line x1="2" y1="7" x2="28" y2="7" stroke="#8fc4ff" stroke-width="4" opacity="0.9"/></svg><div><b>Wel bereikbaar</b></div></div>
         <div class="leg"><svg width="34" height="34" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15" fill="#fff" stroke="#9AA0A6" stroke-width="4"/><text x="20" y="24" text-anchor="middle" font-family="Barlow Semi Condensed" font-weight="700" font-size="11" fill="#6b6f76">7,5</text><rect x="26" y="1" width="15" height="11" rx="3" fill="#1C1E21"/><text x="33.5" y="9.5" text-anchor="middle" font-family="Space Mono" font-weight="700" font-size="7.5" fill="#fff">ZB</text></svg><div><b>7,5t-zone</b> — waar jouw ontheffing geldt</div></div>
-        <div class="leg"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="11" fill="#fff" stroke="#7a4fbf" stroke-width="3.5"/></svg><div><b>Nul-emissiezone</b> (C22c)</div></div>
-        <div class="leg"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="11" fill="#fff" stroke="#e69f00" stroke-width="3.5"/></svg><div><b>Milieuzone</b> (C22a / C22e)</div></div>
+        <div class="leg"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Nederlands_verkeersbord_C22c.svg" width="28" height="28" alt="C22c"><div><b>Nul-emissiezone</b> (C22c)</div></div>
+        <div class="leg"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Nederlands_verkeersbord_C22a.svg" width="28" height="28" alt="C22a"><div><b>Milieuzone</b> (C22a / C22e)</div></div>
       </div>
     </div>
 
@@ -363,8 +363,10 @@ const RVV_SYM={
   trailer:'<path d="M2.2 16.2l1.2-2.7c.3-.8.9-1.2 1.8-1.2h5.6c.9 0 1.5.4 1.8 1.2l.5 1.2z"/><rect x="14.4" y="12.6" width="5.3" height="3.6"/><circle cx="6" cy="16.4" r="1.5"/><circle cx="12.5" cy="16.4" r="1.5"/><circle cx="17" cy="16.6" r="1.4"/>'
 };
 const RVV_SYMBOL_FOR={C7:"truck",C7A:"bus",C7B:"bus",C10:"trailer",C11:"moto"};
-const RVV_EMOJI={C6:"🚗",C12:"🚗",C8:"🚜",C9:"🐴"}; // auto, auto, tractor, paard
 const RVV_UNIT={C17:"m",C18:"m",C19:"m",C20:"t",C21:"t"};
+/* officiële RVV-bordafbeeldingen (publiek domein, Wikimedia) — alleen symboolborden; maatborden houden hun eigen waarde */
+const SIGN_IMG=new Set(["C1","C2","C6","C7","C7a","C7b","C8","C9","C10","C11","C12","C22a","C22c"]);
+function signImgUrl(code){return "https://commons.wikimedia.org/wiki/Special:FilePath/Nederlands_verkeersbord_"+code+".svg";}
 function signInner(code, rec, ringColor){
   code=(code||"").toUpperCase().replace(/\(ZONE\)/,"");
   const ring=ringColor||RVV_RED;
@@ -382,10 +384,9 @@ function signInner(code, rec, ringColor){
   return ringSvg+'<text x="15" y="18" text-anchor="middle" font-family="Barlow Semi Condensed,sans-serif" font-weight="700" font-size="7.5" fill="#111">'+code.replace(/^C/,"")+'</text>';
 }
 function bordGlyph(rec){
-  const code=(rec.rvvCode||"").replace(/\(zone\)/i,"").toUpperCase();
-  const emo=RVV_EMOJI[code];
-  if(emo){
-    const html='<div style="width:30px;height:30px;border-radius:50%;background:#fff;border:3.6px solid '+RVV_RED+';display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;box-shadow:0 1px 1.5px rgba(0,0,0,.35)">'+emo+'</div>';
+  const code=(rec.rvvCode||"").replace(/\(zone\)/i,"");
+  if(SIGN_IMG.has(code)){
+    const html='<img src="'+signImgUrl(code)+'" width="30" height="30" alt="'+code+'" style="display:block;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))">';
     return L.divIcon({html,className:"",iconSize:[30,30],iconAnchor:[15,15]});
   }
   const html='<svg width="30" height="30" viewBox="0 0 30 30" style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))">'+signInner(code,rec,RVV_RED)+'</svg>';
@@ -740,12 +741,20 @@ async function loadEmissionSigns(){
 function emissionGlyph(rec){
   const code=(rec.rvvCode||"").replace(/\(zone\)/i,"");
   const zc=(rec.zoneCode||"").toUpperCase();
-  const ring = (zc==="ZE") ? "#9AA0A6" : (EMISSION_RING[code]||EMISSION_RING[code.toUpperCase()]||"#7a4fbf"); // grijs voor zone-einde
+  const end=(zc==="ZE");
   const badge=(zc==="ZB"||zc==="ZH"||zc==="ZE")?zc:"";
-  const html='<svg width="32" height="32" viewBox="0 0 32 32" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">'
-    +'<circle cx="16" cy="16" r="12.3" fill="#fff" stroke="'+ring+'" stroke-width="3.8"/>'
-    +(badge?'<rect x="22" y="0" width="14" height="11" rx="3" fill="#1C1E21"/><text x="29" y="8.4" text-anchor="middle" font-family="Space Mono,monospace" font-weight="700" font-size="7" fill="#fff">'+badge+'</text>':'')
-    +'</svg>';
+  let inner;
+  if(SIGN_IMG.has(code)){
+    const filt=end?"grayscale(1) opacity(.55) drop-shadow(0 1px 2px rgba(0,0,0,.25))":"drop-shadow(0 1px 2px rgba(0,0,0,.3))";
+    inner='<img src="'+signImgUrl(code)+'" width="30" height="30" alt="'+code+'" style="display:block;filter:'+filt+'">';
+  }else{ // bv. C22e (nog geen officiële afbeelding) -> gekleurde ring
+    const ring=end?"#9AA0A6":(EMISSION_RING[code]||"#e69f00");
+    inner='<svg width="30" height="30" viewBox="0 0 30 30" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))"><circle cx="15" cy="15" r="12.3" fill="#fff" stroke="'+ring+'" stroke-width="3.6"/><text x="15" y="18.5" text-anchor="middle" font-family="Barlow Semi Condensed,sans-serif" font-weight="700" font-size="7" fill="#111">'+code.replace(/^C/i,"")+'</text></svg>';
+  }
+  const html='<div style="position:relative;width:32px;height:32px">'
+    +'<div style="position:absolute;left:1px;top:1px">'+inner+'</div>'
+    +(badge?'<div style="position:absolute;right:-1px;top:-3px;background:#1C1E21;color:#fff;font:700 7px \'Space Mono\',monospace;padding:1px 3px;border-radius:3px;line-height:1.3">'+badge+'</div>':'')
+    +'</div>';
   return L.divIcon({html,className:"",iconSize:[32,32],iconAnchor:[16,16]});
 }
 </script>
