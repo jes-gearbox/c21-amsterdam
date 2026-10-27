@@ -362,7 +362,8 @@ const RVV_SYM={
   moto:'<circle cx="6" cy="16.5" r="2.7" fill="none" stroke="'+RVV_INK+'" stroke-width="1.5"/><circle cx="17.5" cy="16.5" r="2.7" fill="none" stroke="'+RVV_INK+'" stroke-width="1.5"/><path d="M6 16.5l4-3.3h4.5l3 3.3" fill="none" stroke="'+RVV_INK+'" stroke-width="1.5"/><path d="M8.5 13.2h3.5" stroke="'+RVV_INK+'" stroke-width="1.5"/>',
   trailer:'<path d="M2.2 16.2l1.2-2.7c.3-.8.9-1.2 1.8-1.2h5.6c.9 0 1.5.4 1.8 1.2l.5 1.2z"/><rect x="14.4" y="12.6" width="5.3" height="3.6"/><circle cx="6" cy="16.4" r="1.5"/><circle cx="12.5" cy="16.4" r="1.5"/><circle cx="17" cy="16.6" r="1.4"/>'
 };
-const RVV_SYMBOL_FOR={C6:"car",C12:"car",C7:"truck",C7A:"bus",C7B:"bus",C10:"trailer",C11:"moto",C22:"truck",C22A:"truck",C22C:"truck",C22E:"truck"};
+const RVV_SYMBOL_FOR={C7:"truck",C7A:"bus",C7B:"bus",C10:"trailer",C11:"moto"};
+const RVV_EMOJI={C6:"🚗",C12:"🚗",C8:"🚜",C9:"🐴"}; // auto, auto, tractor, paard
 const RVV_UNIT={C17:"m",C18:"m",C19:"m",C20:"t",C21:"t"};
 function signInner(code, rec, ringColor){
   code=(code||"").toUpperCase().replace(/\(ZONE\)/,"");
@@ -381,7 +382,12 @@ function signInner(code, rec, ringColor){
   return ringSvg+'<text x="15" y="18" text-anchor="middle" font-family="Barlow Semi Condensed,sans-serif" font-weight="700" font-size="7.5" fill="#111">'+code.replace(/^C/,"")+'</text>';
 }
 function bordGlyph(rec){
-  const code=(rec.rvvCode||"").replace(/\(zone\)/i,"");
+  const code=(rec.rvvCode||"").replace(/\(zone\)/i,"").toUpperCase();
+  const emo=RVV_EMOJI[code];
+  if(emo){
+    const html='<div style="width:30px;height:30px;border-radius:50%;background:#fff;border:3.6px solid '+RVV_RED+';display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;box-shadow:0 1px 1.5px rgba(0,0,0,.35)">'+emo+'</div>';
+    return L.divIcon({html,className:"",iconSize:[30,30],iconAnchor:[15,15]});
+  }
   const html='<svg width="30" height="30" viewBox="0 0 30 30" style="filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))">'+signInner(code,rec,RVV_RED)+'</svg>';
   return L.divIcon({html,className:"",iconSize:[30,30],iconAnchor:[15,15]});
 }
@@ -733,11 +739,11 @@ async function loadEmissionSigns(){
 }
 function emissionGlyph(rec){
   const code=(rec.rvvCode||"").replace(/\(zone\)/i,"");
-  const ring=EMISSION_RING[code]||EMISSION_RING[code.toUpperCase()]||"#7a4fbf";
   const zc=(rec.zoneCode||"").toUpperCase();
+  const ring = (zc==="ZE") ? "#9AA0A6" : (EMISSION_RING[code]||EMISSION_RING[code.toUpperCase()]||"#7a4fbf"); // grijs voor zone-einde
   const badge=(zc==="ZB"||zc==="ZH"||zc==="ZE")?zc:"";
   const html='<svg width="32" height="32" viewBox="0 0 32 32" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))">'
-    +'<g transform="translate(1,1)">'+signInner(code,rec,ring)+'</g>'
+    +'<circle cx="16" cy="16" r="12.3" fill="#fff" stroke="'+ring+'" stroke-width="3.8"/>'
     +(badge?'<rect x="22" y="0" width="14" height="11" rx="3" fill="#1C1E21"/><text x="29" y="8.4" text-anchor="middle" font-family="Space Mono,monospace" font-weight="700" font-size="7" fill="#fff">'+badge+'</text>':'')
     +'</svg>';
   return L.divIcon({html,className:"",iconSize:[32,32],iconAnchor:[16,16]});
