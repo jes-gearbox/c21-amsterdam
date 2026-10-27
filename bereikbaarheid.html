@@ -377,7 +377,11 @@ function signInner(code, rec, ringColor){
   const sym=RVV_SYMBOL_FOR[code];
   if(sym) return ringSvg+'<g fill="'+RVV_INK+'" transform="translate(4.3,3.6) scale(0.78)">'+RVV_SYM[sym]+'</g>';
   if(RVV_UNIT[code]){
-    const val=(rec.blackCode!=null&&rec.blackCode!=="")?String(rec.blackCode).replace(".",","):"";
+    let val="";
+    if(rec.blackCode!=null&&rec.blackCode!==""){
+      const n=parseFloat(String(rec.blackCode).replace(",","."));
+      val=Number.isFinite(n)?String(n).replace(".",","):String(rec.blackCode); // 30,00->30 ; 7,5 blijft 7,5
+    }
     const t=val?(val+" "+RVV_UNIT[code]):code; const fs=t.length>4?7.3:9;
     return ringSvg+'<text x="15" y="18.3" text-anchor="middle" font-family="Barlow Semi Condensed,sans-serif" font-weight="700" font-size="'+fs+'" fill="#111">'+t+'</text>';
   }
