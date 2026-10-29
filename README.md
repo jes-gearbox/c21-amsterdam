@@ -47,7 +47,7 @@ Op de rol:
 
 ## Let op
 
-Borden **met een onderbord** (venstertijden, uitzonderingen) worden door de bereikbaarheids-API genegeerd en tellen als bereikbaar; afslagverboden tellen niet mee. De kaarten zijn een hulpmiddel, geen juridisch oordeel — controleer altijd je eigen ontheffingsvoorwaarden.
+Borden **met een onderbord** (venstertijden, uitzonderingen) worden door de bereikbaarheids-API genegeerd en tellen als bereikbaar; afslagverboden tellen niet mee. De kaarten zijn een hulpmiddel, geen juridisch oordeel — controleer altijd je eigen ontheffingsvoorwaarden. De situatie op straat (de borden zelf) is juridisch leidend; deze kaarten kunnen fouten bevatten en er kunnen geen rechten aan worden ontleend.
 
 ## Colofon
 
