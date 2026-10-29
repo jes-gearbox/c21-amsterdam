@@ -328,7 +328,7 @@
       <summary>Over deze kaart</summary>
       <p>Bron: NDW open data verkeersborden (<code>rvvCode=C21</code>, <code>countyCode=GM0363</code>). Het onderscheid komt uit het veld <code>zoneCode</code> (ZB/ZH/ZE/ZO of leeg) en het gewicht uit <code>blackCode</code>.</p>
       <p>Een bord telt als <b>vrijgesteld</b> wanneer het gewicht 7,5t is én het een herkende zone is (begin/herhaling/einde). <b>Zone onbekend</b> en <b>losse borden</b> gelden wél voor jou. Controleer altijd de exacte voorwaarden van je eigen RVV-ontheffing — deze kaart is een hulpmiddel, geen juridisch oordeel.</p>
-      <p>Kaart © OpenStreetMap-bijdragers © CARTO · Bordendata © NDW.</p>
+      <p>Kaart © Esri · NWB © Rijkswaterstaat/PDOK · Bordendata © NDW.</p>
     </details>
 
   </div>
@@ -356,10 +356,9 @@ const ZONE_LABELS = { ZB:"Zone begin", ZH:"Zone herhaling", ZE:"Zone einde", ZO:
    ============================================================ */
 const map = L.map("map",{zoomControl:true}).setView(AMS,13);
 map.zoomControl.setPosition("bottomright"); // keep top-left free for the panel
-const baseLight = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",{
-  maxZoom:20, subdomains:"abcd",
-  attribution:'© OpenStreetMap © CARTO · borden © NDW · NWB © Rijkswaterstaat/PDOK'
-}).addTo(map);
+const grayBase = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",{maxNativeZoom:16,maxZoom:20,attribution:"Tiles © Esri · borden © NDW · NWB © Rijkswaterstaat/PDOK"});
+const grayRef = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",{maxNativeZoom:16,maxZoom:20});
+const baseLight = L.layerGroup([grayBase,grayRef]).addTo(map);
 const baseOSM = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
   maxZoom:19, attribution:'© OpenStreetMap-bijdragers'
 });
@@ -375,7 +374,7 @@ const nwbHecto = L.tileLayer.wms("https://service.pdok.nl/rws/nwbwegen/wms/v1_0"
   layers:"hectopunten", format:"image/png", transparent:true, version:"1.3.0", maxZoom:20
 });
 L.control.layers(
-  {"Licht (CARTO)":baseLight,"OpenStreetMap":baseOSM,"Luchtfoto (PDOK)":baseAerial},
+  {"Licht (rustig)":baseLight,"OpenStreetMap":baseOSM,"Luchtfoto (PDOK)":baseAerial},
   {"NWB wegvakken":nwbWegvakken,"NWB hectopunten":nwbHecto},
   {position:"topright",collapsed:false}
 ).addTo(map);
