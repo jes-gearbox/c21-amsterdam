@@ -517,13 +517,15 @@ function ingest(rawRecords, sourceLabel){
   });
   const nApplies = SIGNS.filter(s=>!s.exempt).length;
   const nExempt  = SIGNS.filter(s=>s.exempt).length;
+  document.getElementById("cApplies").textContent=nApplies;  // hangen niet van filters af: één keer zetten
+  document.getElementById("cExempt").textContent=nExempt;
   setStatus("ok",`${SIGNS.length} C21-borden geladen — ${sourceLabel}. ${nApplies} gelden voor jou, ${nExempt} vrijgesteld.`);
 }
 
 function setStatus(kind,msg){
   const el=document.getElementById("status");
   el.className="status"+(kind?(" "+kind):"");
-  el.innerHTML = (kind===""||kind==="")?`<span class="spin"></span><span>${msg}</span>`:`<span>${msg}</span>`;
+  el.innerHTML = (!kind)?`<span class="spin"></span><span>${msg}</span>`:`<span>${msg}</span>`;
   document.getElementById("statusTxt")&&(document.getElementById("statusTxt").textContent=msg);
 }
 
@@ -646,12 +648,7 @@ function render(){
     markers.push(m);
   }
   cluster.addLayers(markers);
-
-  const nApplies=SIGNS.filter(s=>!s.exempt).length;
-  const nExempt =SIGNS.filter(s=>s.exempt).length;
-  document.getElementById("cApplies").textContent=nApplies;
-  document.getElementById("cExempt").textContent=nExempt;
-  document.getElementById("cShown").textContent=shown;
+  document.getElementById("cShown").textContent=shown;  // enige telling die van de filters afhangt
 }
 
 /* ============================================================
@@ -695,7 +692,7 @@ function readFile(file){
     const text=String(r.result);
     try{
       if(/\.csv$|\.txt$/i.test(file.name) || (!/^\s*[[{]/.test(text))){
-        ingest(parseCSV(text).map(o=>o), "uit "+file.name);
+        ingest(parseCSV(text), "uit "+file.name);
       }else{
         ingest(fromGeoJSON(JSON.parse(text)), "uit "+file.name);
       }
